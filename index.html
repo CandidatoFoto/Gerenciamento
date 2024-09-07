@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciamento de Organização</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-image: url('https://www.sitegratisgratis.com.br/wp-content/uploads/2017/03/wallpaper-azul-papel-de-parede-azul-fundo-14.jpg'); /* Substitua pela URL da sua imagem de fundo */
+            background-size: cover;
+            background-position: center;
+            padding: 20px;
+            text-align: center;
+            margin: 0;
+            height: 100vh;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+        }
+
+        h1 {
+            margin-bottom: 20px;
+            text-transform: uppercase; /* Título em maiúsculas */
+        }
+
+        .table-container {
+            max-width: 100%;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            display: none; /* Inicialmente escondido */
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        th, td {
+            padding: 8px;
+            border: 1px solid #ddd;
+            text-align: center;
+            font-size: 14px;
+            text-transform: uppercase; /* Todos os textos em maiúsculas */
+        }
+
+        th {
+            background-color: #5c96ee;
+            color: white;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+
+        tr:nth-child(odd) {
+            background-color: #ffffff;
+        }
+
+        input {
+            width: 95%; /* Ajustado para caber corretamente nas células */
+            text-transform: uppercase; /* Texto digitado em maiúsculas */
+            padding: 5px;
+            box-sizing: border-box; /* Garante que os inputs se ajustem à célula */
+        }
+
+        button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+            font-size: 16px;
+            margin: 5px;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        .add-nota4-btn {
+            background-color: #ff9800;
+        }
+
+        /* Ocultar botões na impressão e PDF */
+        @media print {
+            button {
+                display: none;
+            }
+        }
+
+        .pdf-header {
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 18px;
+            text-transform: uppercase; /* Nome do partido em maiúsculas */
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1 id="partyName">Nome do Partido</h1>
+
+        <div id="partyInput">
+            <input type="text" id="partyNameInput" placeholder="Digite o nome do partido" oninput="updatePartyName()">
+            <button id="okBtn" onclick="confirmPartyName()" style="display: none;">OK</button>
+        </div>
+
+        <div class="table-container" id="tableContainer">
+            <div class="pdf-header" id="pdfHeader"></div>
+            <table id="candidateTable">
+                <thead>
+                    <tr>
+                        <th>NOME DO CANDIDATO</th>
+                        <th>1ª NOTA</th>
+                        <th>2ª NOTA</th>
+                        <th>3ª NOTA</th>
+                        <th class="nota4-header" style="display: none;">4ª NOTA</th>
+                        <th>VALOR TOTAL</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Linhas dos candidatos serão inseridas aqui -->
+                </tbody>
+            </table>
+
+            <button id="addCandidateBtn" onclick="addRow()">Adicionar Candidato</button>
+            <button id="addNota4Btn" class="add-nota4-btn" onclick="showNota4()">+</button>
+            <button id="generatePdfBtn" onclick="generatePDF()">Gerar PDF</button>
+            <button id="resetBtn" onclick="resetTable()">Fazer Outro</button>
+        </div>
+    </div>
+
+    <script>
+        let nota4Enabled = false;
+
+        // Atualiza o nome do partido e exibe o botão OK
+        function updatePartyName() {
+            const partyNameInput = document.getElementById('partyNameInput').value.toUpperCase();
+            document.getElementById('partyName').textContent = partyNameInput;
+            document.getElementById('pdfHeader').textContent = partyNameInput; // Atualiza o cabeçalho do PDF
+
+            document.getElementById('okBtn').style.display = partyNameInput ? 'inline-block' : 'none'; // Mostra o botão OK se houver entrada
+        }
+
+        // Confirma o nome do partido e mostra a tabela
+        function confirmPartyName() {
+            document.getElementById('tableContainer').style.display = 'block'; // Mostra a tabela
+            document.getElementById('partyInput').style.display = 'none'; // Esconde o input do nome do partido
+        }
+
+        // Função para adicionar uma nova linha na tabela
+        function addRow() {
+            const table = document.getElementById('candidateTable').getElementsByTagName('tbody')[0];
+            if (table.rows.length < 11) { // Limita a 11 linhas
+                const row = table.insertRow();
+                
+                const nomeCell = row.insertCell(0);
+                const nota1Cell = row.insertCell(1);
+                const nota2Cell = row.insertCell(2);
+                const nota3Cell = row.insertCell(3);
+                const nota4Cell = row.insertCell(4);
+                const totalCell = row.insertCell(5);
+
+                // Inputs para as notas
+                nomeCell.innerHTML = '<input type="text" placeholder="Nome do Candidato" />';
+                nota1Cell.innerHTML = '<input type="number" value="0" oninput="calculateTotal(this)" />';
+                nota2Cell.innerHTML = '<input type="number" value="0" oninput="calculateTotal(this)" />';
+                nota3Cell.innerHTML = '<input type="number" value="0" oninput="calculateTotal(this)" />';
+                nota4Cell.innerHTML = nota4Enabled ? '<input type="number" value="0" oninput="calculateTotal(this)" />' : '';
+                totalCell.innerHTML = '0';
+
+                // Controla a exibição da coluna da 4ª nota
+                nota4Cell.style.display = nota4Enabled ? '' : 'none';
+            } else {
+                alert('Máximo de 11 candidatos atingido.');
+            }
+        }
+
+        // Função para calcular o total das notas
+        function calculateTotal(input) {
+            const row = input.parentElement.parentElement;
+            const nota1 = parseFloat(row.cells[1].children[0].value) || 0;
+            const nota2 = parseFloat(row.cells[2].children[0].value) || 0;
+            const nota3 = parseFloat(row.cells[3].children[0].value) || 0;
+            const nota4 = nota4Enabled ? parseFloat(row.cells[4].children[0].value) || 0 : 0;
+            const total = nota1 + nota2 + nota3 + nota4;
+
+            row.cells[5].textContent = total;
+        }
+
+        // Função para exibir a 4ª nota
+        function showNota4() {
+            nota4Enabled = true;
+            document.querySelector('.nota4-header').style.display = ''; // Exibe o cabeçalho da 4ª nota
+
+            const table = document.getElementById('candidateTable').getElementsByTagName('tbody')[0];
+            for (let i = 0; i < table.rows.length; i++) {
+                const nota4Cell = table.rows[i].cells[4];
+                nota4Cell.innerHTML = '<input type="number" value="0" oninput="calculateTotal(this)" />';
+                nota4Cell.style.display = ''; // Exibe a célula da 4ª nota para cada linha existente
+            }
+        }
+
+        // Função para gerar o PDF da tabela
+        function generatePDF() {
+            // Oculta os botões temporariamente
+            document.getElementById('addCandidateBtn').style.display = 'none';
+            document.getElementById('addNota4Btn').style.display = 'none';
+            document.getElementById('generatePdfBtn').style.display = 'none';
+            document.getElementById('resetBtn').style.display = 'none';
+
+            const element = document.querySelector('.table-container');
+            const partyName = document.getElementById('partyName').textContent;
+            const opt = {
+                margin: 0.5, // Margem mais estreita
+                filename: `Nota Final - ${partyName}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2 },
+                jsPDF: { unit: 'in', format: 'letter', orientation: 'landscape' } // Formato A4 em paisagem
+            };
+
+            html2pdf().from(element).set(opt).toPdf().get('pdf').then(function(pdf) {
+                // Adiciona o nome do partido no topo do PDF
+                const page = pdf.internal.pageSize;
+                pdf.setFontSize(18);
+                pdf.text(partyName, page.width / 2, 0.5, { align: 'center' });
+                pdf.save(`Nota Final - ${partyName}.pdf`);
+            }).finally(() => {
+                // Mostra os botões novamente
+                document.getElementById('addCandidateBtn').style.display = 'inline-block';
+                document.getElementById('addNota4Btn').style.display = 'inline-block';
+                document.getElementById('generatePdfBtn').style.display = 'inline-block';
+                document.getElementById('resetBtn').style.display = 'inline-block';
+            });
+        }
+
+        // Função para reiniciar a tabela e o nome do partido
+        function resetTable() {
+            const tableBody = document.getElementById('candidateTable').getElementsByTagName('tbody')[0];
+            tableBody.innerHTML = ''; // Limpa todas as linhas
+            nota4Enabled = false;
+            document.querySelector('.nota4-header').style.display = 'none'; // Oculta o cabeçalho da 4ª nota
+            document.getElementById('partyNameInput').value = ''; // Limpa o campo de entrada do nome do partido
+            document.getElementById('partyName').textContent = 'Nome do Partido'; // Reseta o nome do partido
+            document.getElementById('partyInput').style.display = 'block'; // Reexibe o input do nome do partido
+            document.getElementById('tableContainer').style.display = 'none'; // Esconde a tabela
+        }
+    </script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.min.js"></script>
+
+</body>
+</html>
